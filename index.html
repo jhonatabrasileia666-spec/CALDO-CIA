@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cardápio Digital - Caldo & Cia</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
             /* Fundo inicial (Artesanais - Creme) */
@@ -68,6 +69,9 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: background 0.2s, transform 0.1s;
         }
         .btn-add:active { transform: scale(0.98); }
+
+        .msg-vazio { text-align: center; padding: 2rem 1rem; opacity: 0.7; font-style: italic; }
+        .msg-erro { text-align: center; padding: 2rem 1rem; color: #b71c1c; font-weight: bold; }
 
         /* =========================================
            TEMAS VISUAIS 
@@ -143,6 +147,7 @@
         .btn-qtd { background: #444; color: #fff; border: none; width: 30px; height: 30px; border-radius: 5px; font-weight: bold; cursor: pointer;}
         .carrinho-total { margin-top: 20px; border-top: 1px solid #333; padding-top: 15px; font-size: 1.2rem; display: flex; justify-content: space-between;}
         .btn-finalizar { width: 100%; background: #25d366; color: #fff; font-weight: bold; border: none; padding: 15px; margin-top: 20px; font-size: 1.2rem; cursor: pointer; border-radius: 8px; text-transform: uppercase; }
+        .btn-finalizar:disabled { opacity: 0.6; cursor: not-allowed; }
         .adicional-checkbox { width: 22px; height: 22px; accent-color: var(--amarelo-bebidas); cursor: pointer;}
         .badge { background: #ff0000; color: #fff; border-radius: 50%; padding: 2px 8px; font-size: 0.9rem; }
 
@@ -165,144 +170,23 @@
 
         <svg class="onda-corte" viewBox="0 0 1440 80"><path d="M0,32L80,37.3C160,43,320,53,480,48C640,43,800,21,960,16C1120,11,1280,21,1360,26.7L1440,32L1440,80L1360,80C1280,80,1120,80,960,80C800,80,640,80,480,80C320,80,160,80,80,80L0,80Z"></path></svg>
 
-        <div class="nav-bar">
-            <button class="nav-btn ativo" onclick="abrirCategoria('artesanais', '#F5E8DF', this)">🍔 Artesanais</button>
-            <button class="nav-btn" onclick="abrirCategoria('lanches', '#EAEAEB', this)">🥪 Lanches</button>
-            <button class="nav-btn" onclick="abrirCategoria('caldos', '#FCEAE8', this)">🍲 Caldos & Pratos</button>
-            <button class="nav-btn" onclick="abrirCategoria('porcoes', '#FFF0DE', this)">🍟 Porções</button>
-            <button class="nav-btn" onclick="abrirCategoria('especiais', '#FDF2E3', this)">🐟 Especiais</button>
-            <button class="nav-btn" onclick="abrirCategoria('bebidas', '#fdbb2d', this)">🥤 Sucos & Bebidas</button>
+        <div class="nav-bar" id="nav-bar">
+            <button class="nav-btn ativo" data-categoria="artesanais" data-cor="#F5E8DF">🍔 Artesanais</button>
+            <button class="nav-btn" data-categoria="lanches" data-cor="#EAEAEB">🥪 Lanches</button>
+            <button class="nav-btn" data-categoria="caldos" data-cor="#FCEAE8">🍲 Caldos & Pratos</button>
+            <button class="nav-btn" data-categoria="porcoes" data-cor="#FFF0DE">🍟 Porções</button>
+            <button class="nav-btn" data-categoria="especiais" data-cor="#FDF2E3">🐟 Especiais</button>
+            <button class="nav-btn" data-categoria="bebidas" data-cor="#fdbb2d">🥤 Sucos & Bebidas</button>
         </div>
     </div>
 
     <div class="container" id="area-swipe">
-        
-        <div id="artesanais" class="categoria-secao tema-artesanais" style="display: block;">
-            <div class="menu-item">
-                <img src="topburg.jpg" class="item-img" alt="Top Burg Abacaxi">
-                <div class="item-header"><h3 class="item-title">Top Burg Abacaxi + Banana</h3><span class="item-price">R$ 30,00</span></div>
-                <p class="item-desc">Hambúrguer artesanal, abacaxi, caramelo, dupla mussarela, bacon, salada, banana frita, molho.</p>
-                <button class="btn-add" onclick="abrirModalAdicionais('Top Burg Abacaxi + Banana', 30.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="big-cia.jpg" class="item-img" alt="Big Cia">
-                <div class="item-header"><h3 class="item-title">Big Cia</h3><span class="item-price">R$ 30,00</span></div>
-                <p class="item-desc">Pão, hambúrguer, mussarela, cheddar, presunto, ovo, bacon, banana, salsicha, alface, tomate.</p>
-                <button class="btn-add" onclick="abrirModalAdicionais('Big Cia', 30.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="artesanal-gg.jpg" class="item-img" alt="Artesanal GG">
-                <div class="item-header"><h3 class="item-title">Artesanal GG</h3><span class="item-price">R$ 25,00</span></div>
-                <p class="item-desc">Pão, hambúrguer artesanal, cheddar, presunto, ovo, bacon, banana, salsicha, alface, tomate.</p>
-                <button class="btn-add" onclick="abrirModalAdicionais('Artesanal GG', 25.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <div class="item-header"><h3 class="item-title">Artesanal Simples</h3><span class="item-price">R$ 20,00</span></div>
-                <p class="item-desc">Pão, hambúrguer artesanal, cheddar, presunto, ovo, bacon, alface, tomate.</p>
-                <button class="btn-add" onclick="abrirModalAdicionais('Artesanal Simples', 20.00)">Adicionar +</button>
-            </div>
-        </div>
-
-        <div id="lanches" class="categoria-secao tema-lanches">
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Caldo & Cia</h3><span class="item-price">R$ 25,00</span></div><p class="item-desc">Pão, hambúrguer, salsicha, bacon, filé, ovo, alface, tomate, milho, calabresa, batata palha, presunto, queijo.</p><button class="btn-add" onclick="abrirModalAdicionais('X-Caldo & Cia', 25.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Tudo Duplo</h3><span class="item-price">R$ 24,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Tudo Duplo', 24.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Tudo</h3><span class="item-price">R$ 20,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Tudo', 20.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Filé</h3><span class="item-price">R$ 20,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Filé', 20.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Americano</h3><span class="item-price">R$ 18,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Americano', 18.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Frango</h3><span class="item-price">R$ 17,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Frango', 17.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Bacon</h3><span class="item-price">R$ 16,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Bacon', 16.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Calabresa</h3><span class="item-price">R$ 15,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Calabresa', 15.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Egg</h3><span class="item-price">R$ 14,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Egg', 14.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">X-Salada</h3><span class="item-price">R$ 13,00</span></div><button class="btn-add" onclick="abrirModalAdicionais('X-Salada', 13.00)">Adicionar +</button></div>
-        </div>
-
-        <div id="caldos" class="categoria-secao tema-caldos">
-            <div class="menu-item">
-                <img src="caldo-costela.jpg" class="item-img" alt="Caldo de Costela">
-                <div class="item-header"><h3 class="item-title">Caldo de Costela</h3><span class="item-price">R$ 15,00</span></div>
-                <p class="item-desc">Acompanha torrada.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Caldo de Costela', 15.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <div class="item-header"><h3 class="item-title">Caldo de Mocotó</h3><span class="item-price">R$ 15,00</span></div>
-                <p class="item-desc">Acompanha torrada.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Caldo de Mocotó', 15.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="IMG-20260708-WA0076.jpg" class="item-img" alt="Sopa de Legumes">
-                <div class="item-header"><h3 class="item-title">Sopa de Legumes</h3><span class="item-price">R$ 15,00</span></div>
-                <p class="item-desc">Sopa deliciosa, acompanha torrada.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Sopa de Legumes', 15.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="IMG-20260708-WA0089.jpg" class="item-img" alt="Espetinhos na brasa">
-                <div class="item-header"><h3 class="item-title">Espetinhos (Unidade)</h3><span class="item-price">A partir R$ 10,00</span></div>
-                <p class="item-desc">Carne, Misto, Frango c/ Bacon ou Filé. (Informe o sabor no Zap)</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Espetinho', 10.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <div class="item-header"><h3 class="item-title">Picanha na Chapa c/ Queijo</h3><span class="item-price">R$ 30,00</span></div>
-                <p class="item-desc">Acompanha arroz, tropeiro, vinagrete, mandioca e purê.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Picanha na Chapa c/ Queijo', 30.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <div class="item-header"><h3 class="item-title">Completo Filé c/ Bacon</h3><span class="item-price">R$ 25,00</span></div>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Completo Filé c/ Bacon', 25.00)">Adicionar +</button>
-            </div>
-        </div>
-
-        <div id="porcoes" class="categoria-secao tema-porcoes">
-            <div class="menu-item">
-                <img src="porcao-gg.jpg" class="item-img" alt="Porção GG">
-                <div class="item-header"><h3 class="item-title">Porção GG</h3><span class="item-price">R$ 99,99</span></div>
-                <p class="item-desc">Ovos de codorna, frango, calabresa, frita, azeitona, mussarela e molho.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Porção GG', 99.99)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="camarao.jpg" class="item-img" alt="Batata com Camarão">
-                <div class="item-header"><h3 class="item-title">Batata c/ Camarão</h3><span class="item-price">R$ 75,00</span></div>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Batata c/ Camarão', 75.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="IMG-20260708-WA0078.jpg" class="item-img" alt="Porção Média">
-                <div class="item-header"><h3 class="item-title">Porção Média (Completa)</h3><span class="item-price">R$ 60,00</span></div>
-                <p class="item-desc">Ovos codorna, frita, frango, calabresa, queijo, azeitona, molho.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Porção Média Completa', 60.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="IMG-20260708-WA0079.jpg" class="item-img" alt="Batata Especial">
-                <div class="item-header"><h3 class="item-title">Batata Especial</h3><span class="item-price">R$ 49,00</span></div>
-                <p class="item-desc">Fritas com molho cheddar e sua escolha de Carne, Frango ou Bacon.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Batata Especial', 49.00)">Adicionar +</button>
-            </div>
-        </div>
-
-        <div id="especiais" class="categoria-secao tema-especiais">
-            <div class="menu-item">
-                <img src="IMG-20260708-WA0087.jpg" class="item-img" alt="Iscas de Frango Crocante">
-                <div class="item-header"><h3 class="item-title">Iscas de Frango Crocante</h3><span class="item-price">R$ 30,00</span></div>
-                <p class="item-desc">Filezinhos empanados, batata frita e molho rosé.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Iscas de Frango Crocante', 30.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="IMG-20260708-WA0084.jpg" class="item-img" alt="Costelinha Tambaqui">
-                <div class="item-header"><h3 class="item-title">Costelinha Tambaqui</h3><span class="item-price">R$ 30,00</span></div>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Costelinha Tambaqui', 30.00)">Adicionar +</button>
-            </div>
-            <div class="menu-item">
-                <img src="IMG-20260708-WA0088.jpg" class="item-img" alt="Peixe Frito Prato">
-                <div class="item-header"><h3 class="item-title">Peixe Frito (Prato)</h3><span class="item-price">R$ 25,00</span></div>
-                <p class="item-desc">Acompanha arroz, tropeiro, vinagrete, mandioca, purê.</p>
-                <button class="btn-add" onclick="adicionarAoCarrinho('Peixe Frito (Prato)', 25.00)">Adicionar +</button>
-            </div>
-        </div>
-
-        <div id="bebidas" class="categoria-secao tema-bebidas">
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">Sucos Naturais</h3><span class="item-price">R$ 8,00</span></div><button class="btn-add" onclick="adicionarAoCarrinho('Suco', 8.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">Refrigerante 2 Litros</h3><span class="item-price">R$ 15,00</span></div><button class="btn-add" onclick="adicionarAoCarrinho('Refri 2L', 15.00)">Adicionar +</button></div>
-            <div class="menu-item"><div class="item-header"><h3 class="item-title">Água Mineral</h3><span class="item-price">R$ 2,00</span></div><button class="btn-add" onclick="adicionarAoCarrinho('Água Mineral', 2.00)">Adicionar +</button></div>
-        </div>
-
+        <div id="artesanais" class="categoria-secao tema-artesanais" style="display: block;"><p class="msg-vazio">Carregando cardápio...</p></div>
+        <div id="lanches" class="categoria-secao tema-lanches"></div>
+        <div id="caldos" class="categoria-secao tema-caldos"></div>
+        <div id="porcoes" class="categoria-secao tema-porcoes"></div>
+        <div id="especiais" class="categoria-secao tema-especiais"></div>
+        <div id="bebidas" class="categoria-secao tema-bebidas"></div>
     </div>
 
     <div class="btn-flutuante" onclick="abrirCarrinho()">
@@ -340,7 +224,17 @@
             <h2>Dados de Entrega</h2>
             <button class="btn-fechar" onclick="fecharModais()">✖</button>
         </div>
-        
+
+        <div class="form-grupo">
+            <label class="form-label">Seu Nome</label>
+            <input type="text" id="input-nome" class="form-input" placeholder="Nome completo">
+        </div>
+
+        <div class="form-grupo">
+            <label class="form-label">Seu WhatsApp (com DDD)</label>
+            <input type="tel" id="input-telefone" class="form-input" placeholder="Ex: 68999998888">
+        </div>
+
         <button class="btn-gps" id="btn-gps" type="button" onclick="obterLocalizacao()">
             📍 Pegar minha localização atual (GPS)
         </button>
@@ -366,11 +260,20 @@
             </select>
         </div>
 
-        <button class="btn-finalizar" onclick="finalizarPedidoZap()">Enviar Pedido pro WhatsApp ✅</button>
+        <button class="btn-finalizar" id="btn-enviar-pedido" onclick="finalizarPedidoZap()">Enviar Pedido pro WhatsApp ✅</button>
     </div>
 
 
     <script>
+        // =========================================================
+        // 0. CONEXÃO COM O SUPABASE
+        // Troque pelos dados do SEU projeto: Supabase Dashboard >
+        // Project Settings > API > "Project URL" e "anon public" key.
+        // =========================================================
+        const SUPABASE_URL = "https://yrcenfitsirpxkegsdzx.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlyY2VuZml0c2lycHhrZWdzZHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2MTQ5MjEsImV4cCI6MjEwMzE5MDkyMX0.I6y3F-PCT1zyaOTPY9Bm_xkHDoye19MeJdju0ORAdCk";
+        const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         // --- 1. CONFIGURAÇÕES E ADICIONAIS ---
         const taxaEntrega = 4.00;
         let itensCarrinho = [];
@@ -402,6 +305,13 @@
             botaoClicado.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
+
+        // Liga os cliques do menu (antes era onclick inline chamando abrirCategoria diretamente)
+        document.querySelectorAll('.nav-btn').forEach(botao => {
+            botao.addEventListener('click', () => {
+                abrirCategoria(botao.dataset.categoria, botao.dataset.cor, botao);
+            });
+        });
 
         let touchStartX = 0, touchStartY = 0, touchEndX = 0, touchEndY = 0;
         document.addEventListener('touchstart', e => {
@@ -527,7 +437,7 @@
             document.getElementById('valor-total-final').innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
         }
 
-        // --- 6. GPS E FINALIZAÇÃO DO PEDIDO (WHATSAPP) ---
+        // --- 6. GPS E FINALIZAÇÃO DO PEDIDO (SUPABASE + WHATSAPP) ---
         function obterLocalizacao() {
             const btnLoc = document.getElementById('btn-gps');
             btnLoc.innerText = "⏳ Buscando sua localização...";
@@ -567,35 +477,126 @@
             }
         }
 
-        function finalizarPedidoZap() {
-            let endereco = document.getElementById('input-endereco').value;
-            let referencia = document.getElementById('input-referencia').value;
+        async function finalizarPedidoZap() {
+            let nome = document.getElementById('input-nome').value.trim();
+            let telefone = document.getElementById('input-telefone').value.trim();
+            let endereco = document.getElementById('input-endereco').value.trim();
+            let referencia = document.getElementById('input-referencia').value.trim();
             let pagamento = document.getElementById('input-pagamento').value;
             let linkMaps = document.getElementById('link-maps-oculto').value;
 
-            if (endereco.trim() === "") { alert("Por favor, preencha o seu endereço ou use o GPS!"); return; }
+            if (nome === "") { alert("Por favor, digite o seu nome!"); return; }
+            if (telefone === "") { alert("Por favor, digite o seu WhatsApp!"); return; }
+            if (endereco === "") { alert("Por favor, preencha o seu endereço ou use o GPS!"); return; }
             if (pagamento === "") { alert("Por favor, selecione a forma de pagamento!"); return; }
 
+            let subtotal = itensCarrinho.reduce((soma, i) => soma + (i.preco * i.quantidade), 0);
+            let total = subtotal + taxaEntrega;
+
+            const btnEnviar = document.getElementById('btn-enviar-pedido');
+            btnEnviar.disabled = true;
+            btnEnviar.innerText = "⏳ Enviando pedido...";
+
+            // Grava o pedido no Supabase para aparecer no painel admin
+            const { error } = await db.from('pedidos').insert({
+                cliente_nome: nome,
+                cliente_telefone: telefone.replace(/\D/g, ''),
+                itens: itensCarrinho,
+                endereco: endereco + (linkMaps ? ` (GPS: ${linkMaps})` : ''),
+                referencia: referencia,
+                forma_pagamento: pagamento,
+                total: total,
+                status: 1
+            });
+
+            if (error) {
+                console.error(error);
+                alert("Não foi possível registrar o pedido no sistema, mas vamos te levar direto pro WhatsApp mesmo assim.");
+            }
+
             let mensagem = "Olá, Caldo & Cia! Aqui está meu pedido:\n\n";
-            let subtotal = 0;
-            
+            mensagem += `👤 *Nome:* ${nome}\n\n`;
+
             itensCarrinho.forEach(i => { 
                 mensagem += `👉 *${i.quantidade}x* ${i.nome}\n      R$ ${(i.preco * i.quantidade).toFixed(2).replace('.', ',')}\n\n`; 
-                subtotal += (i.preco * i.quantidade); 
             });
             
             mensagem += `🛵 Taxa de entrega: R$ 4,00\n`;
-            mensagem += `💰 *Total a pagar: R$ ${(subtotal + taxaEntrega).toFixed(2).replace('.', ',')}*\n\n`;
+            mensagem += `💰 *Total a pagar: R$ ${total.toFixed(2).replace('.', ',')}*\n\n`;
             
             mensagem += `📍 *ENDEREÇO DE ENTREGA:*\n${endereco}\n`;
-            if (referencia.trim() !== "") mensagem += `Ponto de ref: ${referencia}\n`;
+            if (referencia !== "") mensagem += `Ponto de ref: ${referencia}\n`;
             if (linkMaps !== "") mensagem += `🗺️ Link do GPS (Google Maps):\n${linkMaps}\n`;
 
             mensagem += `\n💳 *Pagamento:* ${pagamento}`;
             if(pagamento === "PIX") mensagem += `\n(Pode me enviar a chave PIX, por favor?)`;
 
             window.open("https://wa.me/5568992281078?text=" + encodeURIComponent(mensagem), "_blank");
+
+            btnEnviar.disabled = false;
+            btnEnviar.innerText = "Enviar Pedido pro WhatsApp ✅";
         }
+
+        // --- 7. CARREGAR O CARDÁPIO DO SUPABASE ---
+        function escapeHtml(texto) {
+            const div = document.createElement('div');
+            div.innerText = texto || '';
+            return div.innerHTML;
+        }
+
+        async function carregarCardapio() {
+            const { data: itens, error } = await db
+                .from('cardapio')
+                .select('*')
+                .eq('ativo', true)
+                .order('categoria', { ascending: true })
+                .order('ordem', { ascending: true });
+
+            categorias.forEach(cat => {
+                document.getElementById(cat.id).innerHTML = '';
+            });
+
+            if (error) {
+                console.error(error);
+                document.getElementById('artesanais').innerHTML = '<p class="msg-erro">Não foi possível carregar o cardápio. Verifique sua conexão.</p>';
+                return;
+            }
+
+            if (!itens || itens.length === 0) {
+                document.getElementById('artesanais').innerHTML = '<p class="msg-vazio">Cardápio ainda sem itens cadastrados.</p>';
+                return;
+            }
+
+            itens.forEach(item => {
+                const container = document.getElementById(item.categoria);
+                if (!container) return;
+
+                const nomeSeguro = escapeHtml(item.nome);
+                const precoFormatado = parseFloat(item.preco).toFixed(2).replace('.', ',');
+
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                div.innerHTML = `
+                    ${item.imagem_url ? `<img src="${item.imagem_url}" class="item-img" alt="${nomeSeguro}">` : ''}
+                    <div class="item-header"><h3 class="item-title">${nomeSeguro}</h3><span class="item-price">R$ ${precoFormatado}</span></div>
+                    ${item.descricao ? `<p class="item-desc">${escapeHtml(item.descricao)}</p>` : ''}
+                    <button class="btn-add">Adicionar +</button>
+                `;
+
+                // Usa closure em vez de onclick com string, pra não ter problema com aspas no nome do produto
+                div.querySelector('.btn-add').addEventListener('click', () => {
+                    if (item.adicionais) {
+                        abrirModalAdicionais(item.nome, parseFloat(item.preco));
+                    } else {
+                        adicionarAoCarrinho(item.nome, parseFloat(item.preco));
+                    }
+                });
+
+                container.appendChild(div);
+            });
+        }
+
+        carregarCardapio();
     </script>
 </body>
 </html>
