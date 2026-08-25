@@ -577,7 +577,7 @@
                 const div = document.createElement('div');
                 div.className = 'menu-item';
                 div.innerHTML = `
-                    ${item.imagem_url ? `<img src="${item.imagem_url}" class="item-img" alt="${nomeSeguro}">` : ''}
+                    ${item.imagem_url ? `<img src="${item.imagem_url}" class="item-img" loading="lazy" alt="${nomeSeguro}" onerror="this.style.display='none'">` : ''}
                     <div class="item-header"><h3 class="item-title">${nomeSeguro}</h3><span class="item-price">R$ ${precoFormatado}</span></div>
                     ${item.descricao ? `<p class="item-desc">${escapeHtml(item.descricao)}</p>` : ''}
                     <button class="btn-add">Adicionar +</button>
