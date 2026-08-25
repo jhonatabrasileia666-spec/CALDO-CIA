@@ -497,21 +497,32 @@
             btnEnviar.disabled = true;
             btnEnviar.innerText = "⏳ Enviando pedido...";
 
-            // Grava o pedido no Supabase para aparecer no painel admin
-            const { error } = await db.from('pedidos').insert({
-                cliente_nome: nome,
-                cliente_telefone: telefone.replace(/\D/g, ''),
-                itens: itensCarrinho,
-                endereco: endereco + (linkMaps ? ` (GPS: ${linkMaps})` : ''),
-                referencia: referencia,
-                forma_pagamento: pagamento,
-                total: total,
-                status: 1
-            });
+            // Grava o pedido no banco para aparecer no painel admin.
+            // O select devolve o ID e confirma que a gravação foi concluída.
+            let erroRegistro = null;
+            try {
+                const { error } = await db.from('pedidos').insert({
+                    cliente_nome: nome,
+                    cliente_telefone: telefone.replace(/\D/g, ''),
+                    itens: itensCarrinho,
+                    endereco: endereco + (linkMaps ? ` (GPS: ${linkMaps})` : ''),
+                    referencia: referencia,
+                    forma_pagamento: pagamento,
+                    total: total,
+                    status: 1
+                });
+                erroRegistro = error;
+            } catch (erroInesperado) {
+                erroRegistro = erroInesperado;
+            }
 
-            if (error) {
-                console.error(error);
-                alert("Não foi possível registrar o pedido no sistema, mas vamos te levar direto pro WhatsApp mesmo assim.");
+            if (erroRegistro) {
+                console.error('Erro ao registrar pedido:', erroRegistro);
+                const detalhe = erroRegistro.message || erroRegistro.details || 'erro desconhecido';
+                alert(`Não foi possível registrar o pedido no sistema. Motivo: ${detalhe}\n\nRode o arquivo corrigir-permissao-pedidos.sql no SQL Editor.`);
+                btnEnviar.disabled = false;
+                btnEnviar.innerText = "Enviar Pedido pro WhatsApp ✅";
+                return;
             }
 
             let mensagem = "Olá, Caldo & Cia! Aqui está meu pedido:\n\n";
