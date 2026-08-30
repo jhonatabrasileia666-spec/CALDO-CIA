@@ -60,6 +60,11 @@
             width: 100%; border: none; border-radius: 14px; padding: 12px 16px;
             font-size: 0.95rem; background: #fff; color: var(--cor-texto);
         }
+        .input-busca::placeholder {
+            color: #676767;
+            opacity: 1;
+            transition: opacity 0.4s ease;
+        }
         .input-busca:focus { outline: 2px solid var(--cor-destaque); }
 
         .pills-categorias {
@@ -205,6 +210,49 @@
         .cartao-resumo { background: #faf9f7; border-radius: 14px; padding: 14px 16px; margin: 16px 0; }
         .linha-resumo { display: flex; justify-content: space-between; font-size: 0.92rem; padding: 4px 0; color: #555; }
         .linha-resumo.linha-total { font-weight: 800; font-size: 1.1rem; color: var(--cor-preco); border-top: 1px solid #eae5db; margin-top: 6px; padding-top: 10px; }
+        .linha-resumo .valor-resumo {
+            transition: transform 0.2s ease, color 0.2s ease, font-weight 0.2s ease;
+        }
+        .linha-resumo.highlight .valor-resumo {
+            animation: highlightValue 0.7s ease;
+            color: var(--cor-preco);
+            font-weight: 800;
+        }
+
+        @keyframes highlightValue {
+            0% { transform: scale(1); opacity: 0.7; }
+            30% { transform: scale(1.14); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .tipo-pedido { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0 16px; }
+        .tipo-pedido button {
+            background: #f7f4ef; border: 1px solid #e4dfd5; border-radius: 12px; padding: 12px 8px;
+            font-weight: 700; font-size: 0.8rem; color: var(--cor-texto);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+        }
+        .tipo-pedido button.ativo {
+            background: var(--cor-destaque); border-color: var(--cor-destaque); color: #1a1a1a;
+        }
+        .tipo-pedido button.shake-warning {
+            animation: shakeWarning 0.42s ease-in-out 2, blinkWarning 0.18s linear 4;
+            box-shadow: 0 0 0 3px rgba(232, 83, 46, 0.18);
+            border-color: rgba(232, 83, 46, 0.8);
+        }
+
+        @keyframes shakeWarning {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-4px); }
+            40% { transform: translateX(4px); }
+            60% { transform: translateX(-3px); }
+            80% { transform: translateX(3px); }
+        }
+
+        @keyframes blinkWarning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.45; }
+        }
 
         .titulo-entrega { font-size: 1rem; margin: 6px 0 10px; }
         .cartao-entrega { border: 1px solid var(--cor-borda); border-radius: 14px; padding: 4px 16px; margin-bottom: 20px; }
@@ -229,6 +277,34 @@
         .btn-whatsapp small { opacity: 0.9; font-size: 0.78rem; }
         .btn-whatsapp:disabled { opacity: 0.6; }
         .msg-seguranca { text-align: center; color: var(--cor-texto-suave); font-size: 0.78rem; margin-top: 14px; }
+
+        .toast {
+            position: fixed;
+            left: 50%;
+            bottom: 108px;
+            transform: translateX(-50%) translateY(14px);
+            width: min(92vw, 420px);
+            background: rgba(24, 24, 24, 0.96);
+            color: #fff;
+            border-radius: 16px;
+            padding: 14px 16px;
+            box-shadow: 0 14px 30px rgba(0,0,0,0.18);
+            font-size: 0.85rem;
+            line-height: 1.45;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+            z-index: 3000;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+        .toast strong {
+            display: block;
+            font-size: 0.9rem;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -249,7 +325,7 @@
             <input type="text" id="input-busca" class="input-busca" placeholder="🔍  O que você quer comer?">
         </div>
         <div class="pills-categorias" id="pills-categorias">
-            <button class="pill ativa" data-cat="destaque">Mais pedidos</button>
+            <button class="pill ativa" data-cat="destaque">Tópico do Dia</button>
             <button class="pill" data-cat="artesanais">Artesanais</button>
             <button class="pill" data-cat="lanches">Lanches</button>
             <button class="pill" data-cat="caldos">Caldos</button>
@@ -268,6 +344,11 @@
         <span>🛒 <span id="badge-carrinho" class="badge">0</span> itens</span>
         <span id="total-flutuante">R$ 0,00</span>
         <span>➔</span>
+    </div>
+
+    <div id="toast-mensagem" class="toast" role="status" aria-live="polite">
+        <strong>Selecione o tipo do pedido</strong>
+        <span>Escolha entre entrega, retirada ou comer no local.</span>
     </div>
 
     <!-- TELA DE DETALHE DO PRODUTO -->
@@ -319,11 +400,24 @@
             <div id="lista-carrinho"></div>
 
             <div class="cartao-resumo">
-                <div class="linha-resumo"><span>Taxa de entrega</span><span>R$ 4,00</span></div>
-                <div class="linha-resumo linha-total"><span>Total do pedido</span><span id="valor-total-final">R$ 0,00</span></div>
+                <div class="linha-resumo" id="linha-taxa-entrega">
+                    <span>Taxa de entrega</span>
+                    <span id="taxa-entrega-resumo" class="valor-resumo">R$ 4,00</span>
+                </div>
+                <div class="linha-resumo linha-total">
+                    <span>Total do pedido</span>
+                    <span id="valor-total-final" class="valor-resumo">R$ 0,00</span>
+                </div>
             </div>
 
-            <h3 class="titulo-entrega">Entrega</h3>
+            <h3 class="titulo-entrega">Tipo do pedido</h3>
+            <div class="tipo-pedido">
+                <button type="button" data-tipo="entrega">🚚 Entrega</button>
+                <button type="button" data-tipo="retirada">🏪 Retirada</button>
+                <button type="button" data-tipo="local">🍽️ Comer no local</button>
+            </div>
+
+            <h3 class="titulo-entrega">Dados do pedido</h3>
             <div class="cartao-entrega">
                 <div class="campo-entrega">
                     <span class="icone-campo">👤</span>
@@ -339,7 +433,7 @@
                         <input type="tel" id="input-telefone" class="form-input-inline" placeholder="Ex: 68999998888">
                     </div>
                 </div>
-                <div class="campo-entrega">
+                <div class="campo-entrega campo-endereco" id="campo-endereco">
                     <span class="icone-campo">📍</span>
                     <div class="campo-entrega-conteudo">
                         <label class="form-label">Endereço</label>
@@ -349,7 +443,7 @@
                         <input type="hidden" id="link-maps-oculto" value="">
                     </div>
                 </div>
-                <div class="campo-entrega">
+                <div class="campo-entrega campo-pagamento" id="campo-pagamento">
                     <span class="icone-campo">💳</span>
                     <div class="campo-entrega-conteudo">
                         <label class="form-label">Forma de pagamento</label>
@@ -381,6 +475,7 @@
 
         const taxaEntrega = 4.00;
         let itensCarrinho = [];
+        let tipoPedidoAtual = '';
         carregarCarrinho(); // recupera pedido salvo caso o cliente saia e volte à página
 
         // Lista fixa de adicionais (mesmos preços já usados no site hoje).
@@ -414,6 +509,74 @@
             return div.innerHTML;
         }
 
+        function normalizarBusca(texto) {
+            return (texto || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]/g, '');
+        }
+
+        function obterCamposBusca(item) {
+            const campos = [
+                item?.nome || '',
+                item?.descricao || '',
+                item?.ingredientes || '',
+                Array.isArray(item?.ingredientes) ? item.ingredientes.join(' ') : ''
+            ];
+
+            return campos.map(campo => normalizarBusca(campo));
+        }
+
+        function normalizarIngredienteBusca(texto) {
+            let valor = normalizarBusca(texto)
+                .replace(/quijo/g, 'queijo')
+                .replace(/alho/g, 'alho')
+                .replace(/cebola/g, 'cebola')
+                .replace(/pao/g, 'pao')
+                .replace(/hamburguer/g, 'hamburguer');
+
+            return valor;
+        }
+
+        function extrairIngredientesBusca(termoBuscaTexto) {
+            const texto = normalizarBusca(termoBuscaTexto);
+            const termos = texto
+                .replace(/^sem/, '')
+                .replace(/^naotem/, '')
+                .replace(/^naoquero/, '')
+                .replace(/^querosem/, '')
+                .replace(/e/g, ' ')
+                .split(/\s+/)
+                .filter(Boolean)
+                .map(normalizarIngredienteBusca)
+                .filter(Boolean);
+
+            return termos;
+        }
+
+        function buscaInteligente(item, termoBuscaTexto) {
+            const termo = normalizarBusca(termoBuscaTexto);
+            if (!termo) return true;
+
+            const fraseSemIngrediente = /(sem|naotem|naoquero|querosem)/.test(termo);
+
+            if (fraseSemIngrediente) {
+                const ingredientes = extrairIngredientesBusca(termoBuscaTexto);
+                if (!ingredientes.length) return true;
+
+                if (item?.categoria === 'bebidas') return false;
+
+                const campos = obterCamposBusca(item);
+                return ingredientes.every(ingrediente =>
+                    !campos.some(campo => campo.includes(ingrediente))
+                );
+            }
+
+            const campos = obterCamposBusca(item);
+            return campos.some(campo => campo.includes(termo));
+        }
+
         // --- 1. CARREGAR CARDÁPIO DO SUPABASE ---
         async function carregarCardapio() {
             const listaEl = document.getElementById('lista-itens');
@@ -423,6 +586,7 @@
                 .from('cardapio')
                 .select('*')
                 .eq('ativo', true)
+                .order('preco', { ascending: true })
                 .order('categoria', { ascending: true })
                 .order('ordem', { ascending: true });
 
@@ -444,21 +608,20 @@
             let itensParaMostrar;
 
             if (termoBusca.trim() !== '') {
-                const termo = termoBusca.trim().toLowerCase();
-                itensParaMostrar = todosOsItens.filter(i =>
-                    i.nome.toLowerCase().includes(termo) ||
-                    (i.descricao || '').toLowerCase().includes(termo)
-                );
+                const termo = termoBusca.trim();
+                itensParaMostrar = todosOsItens.filter(item => buscaInteligente(item, termo));
                 tituloEl.textContent = `🔍 Resultados para "${termoBusca}"`;
             } else if (categoriaAtiva === 'destaque') {
                 itensParaMostrar = todosOsItens.filter(i => i.destaque);
                 if (itensParaMostrar.length === 0) itensParaMostrar = todosOsItens.slice(0, 5);
-                tituloEl.textContent = '🔥 Mais pedidos hoje';
+                tituloEl.textContent = '� Tópico do Dia';
             } else {
                 const cat = CATEGORIAS.find(c => c.id === categoriaAtiva);
                 itensParaMostrar = todosOsItens.filter(i => i.categoria === categoriaAtiva);
                 tituloEl.textContent = cat ? cat.titulo : '';
             }
+
+            itensParaMostrar = [...itensParaMostrar].sort((a, b) => Number(a.preco) - Number(b.preco));
 
             if (itensParaMostrar.length === 0) {
                 listaEl.innerHTML = '<p class="msg-vazio">Nenhum item encontrado por aqui.</p>';
@@ -516,7 +679,23 @@
             });
         });
 
-        document.getElementById('input-busca').addEventListener('input', (e) => {
+        const inputBusca = document.getElementById('input-busca');
+
+        const frasesPlaceholder = [
+            'O que você quer comer',
+            'Digite o ingrediente que não quer'
+        ];
+
+        let indicePlaceholder = 0;
+        function rotacionarPlaceholder() {
+            inputBusca.placeholder = frasesPlaceholder[indicePlaceholder];
+            indicePlaceholder = (indicePlaceholder + 1) % frasesPlaceholder.length;
+        }
+
+        rotacionarPlaceholder();
+        setInterval(rotacionarPlaceholder, 2600);
+
+        inputBusca.addEventListener('input', (e) => {
             termoBusca = e.target.value;
             renderizarLista();
         });
@@ -624,8 +803,32 @@
             atualizarCarrinhoUI();
         }
 
+        function mostrarToast(mensagem, titulo = 'Atenção') {
+            const toast = document.getElementById('toast-mensagem');
+            const tituloEl = toast.querySelector('strong');
+            const textoEl = toast.querySelector('span');
+            const botoesTipo = document.querySelectorAll('.tipo-pedido button');
+
+            tituloEl.textContent = titulo;
+            textoEl.textContent = mensagem;
+            toast.classList.add('show');
+
+            botoesTipo.forEach(botao => {
+                botao.classList.remove('shake-warning');
+                void botao.offsetWidth;
+                botao.classList.add('shake-warning');
+            });
+
+            clearTimeout(mostrarToast.timer);
+            mostrarToast.timer = setTimeout(() => {
+                toast.classList.remove('show');
+                botoesTipo.forEach(botao => botao.classList.remove('shake-warning'));
+            }, 2600);
+        }
+
         function atualizarCarrinhoUI() {
             const divLista = document.getElementById('lista-carrinho');
+            const linhaTaxa = document.getElementById('linha-taxa-entrega');
             divLista.innerHTML = '';
             let totalItens = 0, subtotal = 0;
 
@@ -652,10 +855,18 @@
             badgeTopo.textContent = totalItens;
             badgeTopo.style.display = totalItens > 0 ? 'flex' : 'none';
 
-            let total = subtotal > 0 ? (subtotal + taxaEntrega) : 0;
+            const taxa = tipoPedidoAtual === 'entrega' ? taxaEntrega : 0;
+            let total = subtotal > 0 ? (subtotal + taxa) : 0;
             document.getElementById('total-flutuante').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
             document.getElementById('valor-total-final').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+            document.getElementById('taxa-entrega-resumo').textContent = `R$ ${taxa.toFixed(2).replace('.', ',')}`;
             document.getElementById('carrinho-flutuante').style.display = itensCarrinho.length > 0 ? 'flex' : 'none';
+
+            linhaTaxa.classList.remove('highlight');
+            void linhaTaxa.offsetWidth;
+            if (tipoPedidoAtual === 'entrega') {
+                linhaTaxa.classList.add('highlight');
+            }
 
             salvarCarrinho();
         }
@@ -673,8 +884,59 @@
         }
 
         // --- 5. TELA DE CARRINHO + ENTREGA ---
+        function definirTipoPedido(tipo) {
+            tipoPedidoAtual = tipo;
+            document.querySelectorAll('.tipo-pedido button').forEach(btn => {
+                btn.classList.toggle('ativo', btn.dataset.tipo === tipo);
+            });
+
+            const linhaTaxa = document.getElementById('linha-taxa-entrega');
+            linhaTaxa.classList.remove('highlight');
+            void linhaTaxa.offsetWidth;
+            if (tipo === 'entrega') {
+                linhaTaxa.classList.add('highlight');
+            }
+
+            const campoEndereco = document.getElementById('campo-endereco');
+            const campoPagamento = document.getElementById('campo-pagamento');
+            const ehEntrega = tipo === 'entrega';
+            const ehRetiradaOuLocal = tipo === 'retirada' || tipo === 'local';
+
+            campoEndereco.style.display = ehEntrega ? 'flex' : 'none';
+            campoPagamento.style.display = ehEntrega ? 'flex' : 'none';
+
+            const enderecoInput = document.getElementById('input-endereco');
+            if (ehRetiradaOuLocal) {
+                enderecoInput.value = '';
+                document.getElementById('input-referencia').value = '';
+                document.getElementById('link-maps-oculto').value = '';
+                document.getElementById('input-pagamento').value = '';
+            }
+
+            atualizarCarrinhoUI();
+        }
+
+        function resetarTipoPedido() {
+            tipoPedidoAtual = '';
+            document.querySelectorAll('.tipo-pedido button').forEach(btn => {
+                btn.classList.remove('ativo');
+            });
+            document.getElementById('campo-endereco').style.display = 'none';
+            document.getElementById('campo-pagamento').style.display = 'none';
+            document.getElementById('input-endereco').value = '';
+            document.getElementById('input-referencia').value = '';
+            document.getElementById('link-maps-oculto').value = '';
+            document.getElementById('input-pagamento').value = '';
+            atualizarCarrinhoUI();
+        }
+
+        document.querySelectorAll('.tipo-pedido button').forEach(btn => {
+            btn.addEventListener('click', () => definirTipoPedido(btn.dataset.tipo));
+        });
+
         function abrirCarrinho() {
             if (itensCarrinho.length === 0) { alert('Seu carrinho está vazio. Adicione algum item primeiro!'); return; }
+            resetarTipoPedido();
             document.getElementById('tela-carrinho').classList.add('aberta');
         }
         function fecharCarrinho() {
@@ -725,11 +987,19 @@
 
             if (nome === "") { alert("Por favor, digite o seu nome!"); return; }
             if (telefone === "") { alert("Por favor, digite o seu WhatsApp!"); return; }
-            if (endereco === "") { alert("Por favor, preencha o seu endereço ou use o GPS!"); return; }
-            if (pagamento === "") { alert("Por favor, selecione a forma de pagamento!"); return; }
+
+            if (!tipoPedidoAtual) {
+                mostrarToast('Escolha como deseja receber seu pedido: entrega, retirada ou comer no local.', 'Selecione o tipo do pedido');
+                return;
+            }
+
+            if (tipoPedidoAtual === 'entrega') {
+                if (endereco === "") { alert("Por favor, preencha o seu endereço ou use o GPS!"); return; }
+                if (pagamento === "") { alert("Por favor, selecione a forma de pagamento!"); return; }
+            }
 
             let subtotal = itensCarrinho.reduce((soma, i) => soma + (i.preco * i.quantidade), 0);
-            let total = subtotal + taxaEntrega;
+            let total = subtotal + (tipoPedidoAtual === 'entrega' ? taxaEntrega : 0);
 
             const btnEnviar = document.getElementById('btn-enviar-pedido');
             btnEnviar.disabled = true;
@@ -741,11 +1011,12 @@
                     cliente_nome: nome,
                     cliente_telefone: telefone.replace(/\D/g, ''),
                     itens: itensCarrinho,
-                    endereco: endereco + (linkMaps ? ` (GPS: ${linkMaps})` : ''),
-                    referencia: referencia,
-                    forma_pagamento: pagamento,
+                    endereco: tipoPedidoAtual === 'entrega' ? (endereco + (linkMaps ? ` (GPS: ${linkMaps})` : '')) : `Pedido ${tipoPedidoAtual}`,
+                    referencia: tipoPedidoAtual === 'entrega' ? referencia : '',
+                    forma_pagamento: tipoPedidoAtual === 'entrega' ? pagamento : 'Retirada/Local',
                     total: total,
-                    status: 1
+                    status: 1,
+                    tipo_pedido: tipoPedidoAtual
                 });
                 erroRegistro = error;
             } catch (erroInesperado) {
@@ -768,13 +1039,17 @@
                 if (i.obs) mensagem += `      Obs: ${i.obs}\n`;
                 mensagem += `\n`;
             });
-            mensagem += `🛵 Taxa de entrega: R$ 4,00\n`;
-            mensagem += `💰 *Total a pagar: R$ ${total.toFixed(2).replace('.', ',')}*\n\n`;
-            mensagem += `📍 *ENDEREÇO DE ENTREGA:*\n${endereco}\n`;
-            if (referencia !== "") mensagem += `Ponto de ref: ${referencia}\n`;
-            if (linkMaps !== "") mensagem += `🗺️ Link do GPS (Google Maps):\n${linkMaps}\n`;
-            mensagem += `\n💳 *Pagamento:* ${pagamento}`;
-            if (pagamento === "PIX") mensagem += `\n(Pode me enviar a chave PIX, por favor?)`;
+            if (tipoPedidoAtual === 'entrega') {
+                mensagem += `🛵 Taxa de entrega: R$ 4,00\n`;
+                mensagem += `📍 *ENDEREÇO DE ENTREGA:*\n${endereco}\n`;
+                if (referencia !== "") mensagem += `Ponto de ref: ${referencia}\n`;
+                if (linkMaps !== "") mensagem += `🗺️ Link do GPS (Google Maps):\n${linkMaps}\n`;
+                mensagem += `\n💳 *Pagamento:* ${pagamento}`;
+                if (pagamento === "PIX") mensagem += `\n(Pode me enviar a chave PIX, por favor?)`;
+            } else {
+                mensagem += `📦 Tipo do pedido: ${tipoPedidoAtual === 'retirada' ? 'Retirada no balcão' : 'Comer no local'}\n`;
+            }
+            mensagem += `\n💰 *Total a pagar: R$ ${total.toFixed(2).replace('.', ',')}*\n`;
 
             window.open("https://wa.me/5568992281078?text=" + encodeURIComponent(mensagem), "_blank");
 
