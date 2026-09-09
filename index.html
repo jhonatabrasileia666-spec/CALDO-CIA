@@ -2057,8 +2057,23 @@
             );
         }
 
+        function pedidoPermitidoPeloHorario() {
+            const agora = new Date();
+            const horaAtual = agora.getHours();
+            const minutosAtuais = agora.getMinutes();
+            const horarioEncerrado = horaAtual > 22 || (horaAtual === 22 && minutosAtuais >= 0);
+
+            if (horarioEncerrado) {
+                alert('Pedidos encerrados. Só aceitamos pedidos até às 22:00. Volte amanhã!');
+                return false;
+            }
+
+            return true;
+        }
+
         // --- 7. FINALIZAR PEDIDO (Supabase + WhatsApp) ---
         async function finalizarPedidoZap() {
+            if (!pedidoPermitidoPeloHorario()) return;
             let nome = document.getElementById('input-nome').value.trim();
             let telefone = document.getElementById('input-telefone').value.trim();
             let endereco = document.getElementById('input-endereco').value.trim();
