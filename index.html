@@ -2059,12 +2059,18 @@
 
         function pedidoPermitidoPeloHorario() {
             const agora = new Date();
-            const horaAtual = agora.getHours();
-            const minutosAtuais = agora.getMinutes();
-            const horarioEncerrado = horaAtual > 22 || (horaAtual === 22 && minutosAtuais >= 0);
+            const partes = new Intl.DateTimeFormat('pt-BR', {
+                timeZone: 'America/Rio_Branco',
+                hour: '2-digit',
+                minute: '2-digit',
+                hourCycle: 'h23'
+            }).formatToParts(agora);
+            const horaAtual = Number(partes.find(parte => parte.type === 'hour').value);
+            const minutosAtuais = Number(partes.find(parte => parte.type === 'minute').value);
+            const horarioEncerrado = horaAtual * 60 + minutosAtuais >= 22 * 60 + 30;
 
             if (horarioEncerrado) {
-                alert('Pedidos encerrados. Só aceitamos pedidos até às 22:00. Volte amanhã!');
+                alert('Pedidos encerrados. Só aceitamos pedidos até às 22:30 (horário do Acre). Volte amanhã!');
                 return false;
             }
 
