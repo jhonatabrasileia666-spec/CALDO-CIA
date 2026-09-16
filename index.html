@@ -1123,7 +1123,7 @@
         </div>
         <p class="subtitulo">Caldos/Pratos, lanches, porções e espetinhos</p>
         <div class="linha-status">
-            <span>Aberto agora</span>
+            <span id="caldo-store-label" role="status" aria-live="polite">Consultando loja...</span>
             <span class="separador">|</span>
             <span>Entrega R$ 4,00</span>
         </div>
@@ -2057,29 +2057,54 @@
             );
         }
 
-        function pedidoPermitidoPeloHorario() {
-            const agora = new Date();
-            const partes = new Intl.DateTimeFormat('pt-BR', {
-                timeZone: 'America/Rio_Branco',
-                hour: '2-digit',
-                minute: '2-digit',
-                hourCycle: 'h23'
-            }).formatToParts(agora);
-            const horaAtual = Number(partes.find(parte => parte.type === 'hour').value);
-            const minutosAtuais = Number(partes.find(parte => parte.type === 'minute').value);
-            const horarioEncerrado = horaAtual * 60 + minutosAtuais >= 22 * 60 + 30;
 
-            if (horarioEncerrado) {
-                alert('Pedidos encerrados. Só aceitamos pedidos até às 22:30 (horário do Acre). Volte amanhã!');
-                return false;
-            }
-
-            return true;
+        // Server time and expiration keep closure independent of the device's timezone.
+        let caldoStore = null;
+        let caldoDeadline = 0;
+        let caldoStatusBusy = false;
+        function caldoEstaAberta() {
+            return !!caldoStore?.is_open && performance.now() < caldoDeadline;
         }
+        async function carregarEstadoLoja() {
+            if (caldoStatusBusy) return false;
+            caldoStatusBusy = true;
+            try {
+                const started = performance.now();
+                const { data, error } = await db.rpc('caldo_store_status');
+                if (error || !data || !Number.isFinite(Date.parse(data.closes_at)) || !Number.isFinite(Date.parse(data.server_now))) throw error || new Error('Status indisponível');
+                caldoStore = data;
+                caldoDeadline = started + Math.max(0, Date.parse(data.closes_at) - Date.parse(data.server_now));
+                renderizarEstadoLoja();
+                return true;
+            } catch (error) {
+                caldoStore = null;
+                renderizarEstadoLoja();
+                console.error('Não foi possível consultar a loja:', error);
+                return false;
+            } finally { caldoStatusBusy = false; }
+        }
+
+        function renderizarEstadoLoja() {
+            const label = document.getElementById('caldo-store-label');
+            if (label) label.textContent = !caldoStore ? 'Status indisponível' : caldoEstaAberta() ? 'Aberto até 21h45' : 'Loja fechada';
+            const button = document.getElementById('btn-enviar-pedido');
+            if (button && !caldoSending) button.disabled = !caldoEstaAberta();
+        }
+        let caldoSending = false;
+        carregarEstadoLoja();
+        setInterval(carregarEstadoLoja, 15000);
+        setInterval(renderizarEstadoLoja, 1000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) carregarEstadoLoja(); });
 
         // --- 7. FINALIZAR PEDIDO (Supabase + WhatsApp) ---
         async function finalizarPedidoZap() {
-            if (!pedidoPermitidoPeloHorario()) return;
+            if (caldoSending) return;
+            caldoSending = true;
+            try {
+            if (!await carregarEstadoLoja() || !caldoEstaAberta()) {
+                alert(caldoStore ? 'Loja fechada. Atendimento até 21h45 do Acre.' : 'Não foi possível consultar a loja. Tente novamente.');
+                return;
+            }
             let nome = document.getElementById('input-nome').value.trim();
             let telefone = document.getElementById('input-telefone').value.trim();
             let endereco = document.getElementById('input-endereco').value.trim();
@@ -2135,7 +2160,7 @@
             if (erroRegistro) {
                 console.error('Erro ao registrar pedido:', erroRegistro);
                 const detalhe = erroRegistro.message || erroRegistro.details || 'erro desconhecido';
-                alert(`Não foi possível registrar o pedido no sistema. Motivo: ${detalhe}\n\nRode o ajustes_supabase_caldo_cia.sql no SQL Editor do Supabase.`);
+                alert(`Não foi possível registrar o pedido. ${detalhe}`);
                 btnEnviar.disabled = false;
                 btnEnviar.querySelector('span').textContent = "📱 Enviar pedido no WhatsApp";
                 return;
@@ -2174,6 +2199,10 @@
             fecharCarrinho();
             btnEnviar.disabled = false;
             btnEnviar.querySelector('span').textContent = "📱 Enviar pedido no WhatsApp";
+            } finally {
+                caldoSending = false;
+                renderizarEstadoLoja();
+            }
         }
 
         // --- INICIALIZAÇÃO ---
@@ -2182,3 +2211,4 @@
     </script>
 </body>
 </html>
+
