@@ -1135,7 +1135,7 @@
             <button class="pill" data-cat="artesanais">Artesanais</button>
             <button class="pill" data-cat="lanches">Lanches</button>
             <button class="pill" data-cat="caldos">Caldos/Pratos</button>
-            <button class="pill" data-cat="espetinhos">Espetinhos</button>
+            <button class="pill" data-cat="espetinhos">Espetinhos &amp; Completos</button>
             <button class="pill" data-cat="porcoes">Porções</button>
             <button class="pill" data-cat="especiais">Especiais</button>
             <button class="pill" data-cat="bebidas">Bebidas</button>
@@ -1370,7 +1370,7 @@
             { id: 'artesanais', titulo: 'Artesanais' },
             { id: 'lanches', titulo: 'Lanches' },
             { id: 'caldos', titulo: 'Caldos & Pratos' },
-            { id: 'espetinhos', titulo: 'Espetinhos' },
+            { id: 'espetinhos', titulo: 'Espetinhos & Completos' },
             { id: 'porcoes', titulo: 'Porções' },
             { id: 'especiais', titulo: 'Especiais' },
             { id: 'bebidas', titulo: 'Sucos & Bebidas' }
@@ -1400,9 +1400,20 @@
                 .replace(/[^a-z0-9]/g, '');
         }
 
-        function obterCategoriaItem(item) {
+        function ehItemDeEspetinho(item) {
             const texto = normalizarBusca(`${item?.nome || ''} ${item?.descricao || ''}`);
-            if (item?.categoria === 'espetinhos' || (item?.categoria === 'caldos' && texto.includes('espetinho'))) {
+            return item?.categoria === 'espetinhos' || texto.includes('espetinho');
+        }
+
+        function ehCompletoDeEspetinho(item) {
+            const texto = normalizarBusca(`${item?.nome || ''} ${item?.descricao || ''}`);
+            // Os "completos" hoje ficam misturados em Lanches. No cardápio
+            // público eles passam a aparecer junto dos espetinhos.
+            return item?.categoria === 'lanches' && texto.includes('completo');
+        }
+
+        function obterCategoriaItem(item) {
+            if (ehItemDeEspetinho(item) || ehCompletoDeEspetinho(item)) {
                 return 'espetinhos';
             }
             return item?.categoria || '';
@@ -1737,7 +1748,7 @@
             const blocoAdicionais = document.getElementById('bloco-adicionais-detalhe');
             const listaOpcoes = document.getElementById('lista-opcoes-detalhe');
             const nomeEspetinho = normalizarBusca(item.nome);
-            const exigeTipoEspetinho = obterCategoriaItem(item) === 'espetinhos'
+            const exigeTipoEspetinho = ehItemDeEspetinho(item)
                 && (nomeEspetinho.includes('carne') || nomeEspetinho.includes('misto'));
             const nomeBebida = normalizarBusca(item.nome);
             const descricaoBebida = normalizarBusca(item.descricao || '');
@@ -1821,7 +1832,7 @@
             const tipoEspetinho = document.querySelector('#lista-opcoes-detalhe .espetinho-opcao:checked');
             const saborRefrigerante = document.querySelector('#lista-opcoes-detalhe .refrigerante-sabor-opcao:checked');
             const nomeEspetinho = normalizarBusca(itemDetalheAtual.nome);
-            const exigeTipoEspetinho = obterCategoriaItem(itemDetalheAtual) === 'espetinhos'
+            const exigeTipoEspetinho = ehItemDeEspetinho(itemDetalheAtual)
                 && (nomeEspetinho.includes('carne') || nomeEspetinho.includes('misto'));
             const nomeBebida = normalizarBusca(itemDetalheAtual.nome);
             const descricaoBebida = normalizarBusca(itemDetalheAtual.descricao || '');
