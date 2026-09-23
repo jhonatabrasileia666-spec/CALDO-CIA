@@ -1353,6 +1353,19 @@
             { nome: 'Calabresa', preco: 3.00, icone: '' }
         ];
 
+        // Sabores disponíveis para o item genérico "Refrigerante em lata".
+        // A escolha é obrigatória e passa a fazer parte do nome do item no
+        // carrinho, no Supabase, no painel admin, na impressão e no WhatsApp.
+        const saboresRefrigeranteLata = [
+            'Coca-Cola',
+            'Coca-Cola Zero',
+            'Guaraná Antarctica',
+            'Fanta',
+            'Sprite',
+            'Pepsi',
+            'Pepsi Black'
+        ];
+
         const CATEGORIAS = [
             { id: 'artesanais', titulo: 'Artesanais' },
             { id: 'lanches', titulo: 'Lanches' },
@@ -1726,7 +1739,13 @@
             const nomeEspetinho = normalizarBusca(item.nome);
             const exigeTipoEspetinho = obterCategoriaItem(item) === 'espetinhos'
                 && (nomeEspetinho.includes('carne') || nomeEspetinho.includes('misto'));
-            if (item.adicionais || exigeTipoEspetinho) {
+            const nomeBebida = normalizarBusca(item.nome);
+            const descricaoBebida = normalizarBusca(item.descricao || '');
+            const exigeSaborRefrigerante = obterCategoriaItem(item) === 'bebidas'
+                && nomeBebida.includes('refrigerante')
+                && (nomeBebida.includes('lata') || descricaoBebida.includes('lata'));
+
+            if (item.adicionais || exigeTipoEspetinho || exigeSaborRefrigerante) {
                 blocoAdicionais.style.display = 'block';
                 listaOpcoes.innerHTML = '';
                 if (exigeTipoEspetinho) {
@@ -1742,7 +1761,20 @@
                         </label>
                     `;
                 }
-                if (!exigeTipoEspetinho) {
+
+                if (exigeSaborRefrigerante) {
+                    listaOpcoes.innerHTML += `
+                        <p class="escolha-obrigatoria">Escolha o refrigerante:</p>
+                        ${saboresRefrigeranteLata.map(sabor => `
+                            <label class="linha-adicional">
+                                <span class="adicional-nome">${sabor}</span>
+                                <input type="radio" name="sabor-refrigerante-lata" value="${sabor}" class="adicional-checkbox refrigerante-sabor-opcao">
+                            </label>
+                        `).join('')}
+                    `;
+                }
+
+                if (!exigeTipoEspetinho && !exigeSaborRefrigerante && item.adicionais) {
                     listaDeAdicionais.forEach((ad, i) => {
                         listaOpcoes.innerHTML += `
                             <label class="linha-adicional">
@@ -1775,7 +1807,7 @@
         function recalcularDetalhe() {
             let precoUnit = parseFloat(itemDetalheAtual.preco);
             document.querySelectorAll('#lista-opcoes-detalhe .adicional-checkbox:checked').forEach(cb => {
-                if (cb.classList.contains('espetinho-opcao')) return;
+                if (cb.classList.contains('espetinho-opcao') || cb.classList.contains('refrigerante-sabor-opcao')) return;
                 precoUnit += listaDeAdicionais[cb.dataset.idx].preco;
             });
             const total = precoUnit * qtdDetalheAtual;
@@ -1787,19 +1819,31 @@
             let precoUnit = parseFloat(itemDetalheAtual.preco);
             let extras = [];
             const tipoEspetinho = document.querySelector('#lista-opcoes-detalhe .espetinho-opcao:checked');
+            const saborRefrigerante = document.querySelector('#lista-opcoes-detalhe .refrigerante-sabor-opcao:checked');
             const nomeEspetinho = normalizarBusca(itemDetalheAtual.nome);
             const exigeTipoEspetinho = obterCategoriaItem(itemDetalheAtual) === 'espetinhos'
                 && (nomeEspetinho.includes('carne') || nomeEspetinho.includes('misto'));
+            const nomeBebida = normalizarBusca(itemDetalheAtual.nome);
+            const descricaoBebida = normalizarBusca(itemDetalheAtual.descricao || '');
+            const exigeSaborRefrigerante = obterCategoriaItem(itemDetalheAtual) === 'bebidas'
+                && nomeBebida.includes('refrigerante')
+                && (nomeBebida.includes('lata') || descricaoBebida.includes('lata'));
 
             if (exigeTipoEspetinho && !tipoEspetinho) {
                 alert('Escolha entre Carne ou Misto para continuar.');
                 return;
             }
 
+            if (exigeSaborRefrigerante && !saborRefrigerante) {
+                alert('Escolha o refrigerante em lata para continuar.');
+                return;
+            }
+
             if (tipoEspetinho) nomeFinal += ` (${tipoEspetinho.value})`;
+            if (saborRefrigerante) nomeFinal += ` (${saborRefrigerante.value})`;
 
             document.querySelectorAll('#lista-opcoes-detalhe .adicional-checkbox:checked').forEach(cb => {
-                if (cb.classList.contains('espetinho-opcao')) return;
+                if (cb.classList.contains('espetinho-opcao') || cb.classList.contains('refrigerante-sabor-opcao')) return;
                 const ad = listaDeAdicionais[cb.dataset.idx];
                 extras.push(ad.nome);
                 precoUnit += ad.preco;
