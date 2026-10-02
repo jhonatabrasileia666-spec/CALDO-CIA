@@ -2296,7 +2296,7 @@
                     itens: itensCarrinho,
                     endereco: tipoPedidoAtual === 'entrega' ? (endereco + (linkMaps ? ` (GPS: ${linkMaps})` : '')) : `Pedido ${tipoPedidoAtual}`,
                     referencia: tipoPedidoAtual === 'entrega' ? referencia : '',
-                    forma_pagamento: tipoPedidoAtual === 'entrega' ? pagamento : 'Retirada/Local',
+                    forma_pagamento: tipoPedidoAtual === 'entrega' ? (pagamento === 'Dinheiro' && precisaTroco ? `Dinheiro | Troco para R$ ${valorTroco.toFixed(2).replace('.', ',')}` : pagamento) : 'Retirada/Local',
                     total: total,
                     status: 1,
                     tipo_pedido: tipoPedidoAtual
