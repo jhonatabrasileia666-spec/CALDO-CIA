@@ -1389,6 +1389,14 @@
             { nome: 'Calabresa', preco: 3.00, icone: '' }
         ];
 
+        // Acompanhamentos exclusivos do Espetinho Carne ou Misto.
+        // Mantidos separados dos adicionais de lanches para não misturar as opções.
+        const adicionaisEspetinhoCarne = [
+            { nome: 'Mandioca', preco: 2.00 },
+            { nome: 'Farofa', preco: 2.00 },
+            { nome: 'Banana', preco: 3.00 }
+        ];
+
         // Sabores disponíveis para o item genérico "Refrigerante em lata".
         // A escolha é obrigatória e passa a fazer parte do nome do item no
         // carrinho, no Supabase, no painel admin, na impressão e no WhatsApp.
@@ -1439,6 +1447,13 @@
         function ehItemDeEspetinho(item) {
             const texto = normalizarBusca(`${item?.nome || ''} ${item?.descricao || ''}`);
             return item?.categoria === 'espetinhos' || texto.includes('espetinho');
+        }
+
+        function temAcompanhamentosEspetinhoCarne(item) {
+            const nome = normalizarBusca(item?.nome || '');
+            return ehItemDeEspetinho(item)
+                && nome.includes('carne')
+                && nome.includes('misto');
         }
 
         function ehCompletoDeEspetinho(item) {
@@ -1794,6 +1809,7 @@
             const nomeEspetinho = normalizarBusca(item.nome);
             const exigeTipoEspetinho = ehItemDeEspetinho(item)
                 && (nomeEspetinho.includes('carne') || nomeEspetinho.includes('misto'));
+            const permiteAcompanhamentosEspetinho = temAcompanhamentosEspetinhoCarne(item);
             const exigeSaborRefrigerante = ehRefrigeranteLata(item);
             const linhaQuantidadeGeral = document.getElementById('detalhe-qtd').closest('.linha-quantidade');
             linhaQuantidadeGeral.style.display = exigeSaborRefrigerante ? 'none' : 'flex';
@@ -1802,9 +1818,11 @@
             if (tituloOpcoes) {
                 tituloOpcoes.textContent = exigeSaborRefrigerante
                     ? 'Escolha os sabores e quantidades'
-                    : exigeTipoEspetinho
-                        ? 'Escolha o tipo'
-                        : 'Adicionais';
+                    : permiteAcompanhamentosEspetinho
+                        ? 'Escolha o tipo e os acompanhamentos'
+                        : exigeTipoEspetinho
+                            ? 'Escolha o tipo'
+                            : 'Adicionais';
             }
 
             if (item.adicionais || exigeTipoEspetinho || exigeSaborRefrigerante) {
@@ -1821,6 +1839,22 @@
                             <span class="adicional-nome">Misto</span>
                             <input type="radio" name="tipo-espetinho" value="Misto" class="adicional-checkbox espetinho-opcao">
                         </label>
+                    `;
+                }
+
+                if (permiteAcompanhamentosEspetinho) {
+                    listaOpcoes.innerHTML += `
+                        <p class="escolha-obrigatoria" style="margin-top:14px;">Deseja adicionar acompanhamentos?</p>
+                        ${adicionaisEspetinhoCarne.map((ad, i) => `
+                            <label class="linha-adicional">
+                                <span class="adicional-nome">${ad.nome}</span>
+                                <span class="adicional-preco">+ R$ ${ad.preco.toFixed(2).replace('.', ',')}</span>
+                                <input type="checkbox"
+                                    class="adicional-checkbox acompanhamento-espetinho"
+                                    data-acomp-idx="${i}"
+                                    onchange="recalcularDetalhe()">
+                            </label>
+                        `).join('')}
                     `;
                 }
 
@@ -1902,7 +1936,15 @@
 
             document.querySelectorAll('#lista-opcoes-detalhe .adicional-checkbox:checked').forEach(cb => {
                 if (cb.classList.contains('espetinho-opcao')) return;
-                precoUnit += listaDeAdicionais[cb.dataset.idx].preco;
+
+                if (cb.classList.contains('acompanhamento-espetinho')) {
+                    const ad = adicionaisEspetinhoCarne[Number(cb.dataset.acompIdx)];
+                    if (ad) precoUnit += ad.preco;
+                    return;
+                }
+
+                const ad = listaDeAdicionais[Number(cb.dataset.idx)];
+                if (ad) precoUnit += ad.preco;
             });
             const total = precoUnit * qtdDetalheAtual;
             document.getElementById('btn-confirmar-detalhe').textContent = `Adicionar por R$ ${total.toFixed(2).replace('.', ',')}`;
@@ -1950,9 +1992,21 @@
 
             document.querySelectorAll('#lista-opcoes-detalhe .adicional-checkbox:checked').forEach(cb => {
                 if (cb.classList.contains('espetinho-opcao')) return;
-                const ad = listaDeAdicionais[cb.dataset.idx];
-                extras.push(ad.nome);
-                precoUnit += ad.preco;
+
+                if (cb.classList.contains('acompanhamento-espetinho')) {
+                    const ad = adicionaisEspetinhoCarne[Number(cb.dataset.acompIdx)];
+                    if (ad) {
+                        extras.push(ad.nome);
+                        precoUnit += ad.preco;
+                    }
+                    return;
+                }
+
+                const ad = listaDeAdicionais[Number(cb.dataset.idx)];
+                if (ad) {
+                    extras.push(ad.nome);
+                    precoUnit += ad.preco;
+                }
             });
             if (extras.length > 0) nomeFinal += ` (+ ${extras.join(', ')})`;
 
