@@ -130,6 +130,22 @@
 
         .linha-status .separador { opacity: 0.45; }
 
+        .aviso-prazo-topo {
+            display:flex; align-items:center; justify-content:center; gap:8px;
+            width:fit-content; max-width:100%; margin:9px auto 0; padding:7px 12px;
+            border:1px solid rgba(229,162,41,0.3); border-radius:999px;
+            background:rgba(229,162,41,0.12); color:#f5e7c9;
+            font-size:0.76rem; line-height:1.4; text-align:center;
+        }
+        .aviso-prazo-topo .icon { width:16px; height:16px; color:var(--cor-destaque); }
+        .aviso-prazo-checkout {
+            display:flex; align-items:center; gap:8px; padding:12px 13px;
+            margin:-4px 0 18px; border-radius:12px; background:#fff6e7;
+            border:1px solid #f1dfc2; color:#705020; font-size:0.82rem; line-height:1.4;
+        }
+        .aviso-prazo-checkout[hidden] { display:none !important; }
+        .aviso-prazo-checkout .icon { color:#ba7e14; }
+
         .busca-wrap { margin-top: 14px; }
 
         .input-busca {
@@ -1148,7 +1164,7 @@
 
     <header class="topo">
         <div class="topo-linha1">
-            <button class="btn-icone" onclick="alert('(68) 99228-1078\nEntrega R$ 4,00\nPeça pelo cardápio e finalize no WhatsApp!')" aria-label="Informações">
+            <button class="btn-icone" onclick="alert('(68) 99228-1078\nEntrega R$ 4,00\nPrazo estimado: 30 a 40 minutos\nPeça pelo cardápio e finalize no WhatsApp!')" aria-label="Informações">
                 <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
             </button>
             <div class="logo">CALDO <span class="logo-e">&amp;</span> CIA</div>
@@ -1162,6 +1178,10 @@
             <span id="caldo-store-label" role="status" aria-live="polite">Consultando loja...</span>
             <span class="separador">|</span>
             <span>Entrega R$ 4,00</span>
+        </div>
+        <div class="aviso-prazo-topo" role="note">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            <span>Entrega estimada: <strong>30 a 40 minutos</strong></span>
         </div>
         <div class="busca-wrap">
             <input type="text" id="input-busca" class="input-busca" placeholder="Buscar no cardápio">
@@ -1302,6 +1322,10 @@
                     <span>Local</span>
                 </button>
             </div>
+            <p class="aviso-prazo-checkout" id="aviso-prazo-checkout" role="note" hidden>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                Prazo estimado de entrega: 30 a 40 minutos. O tempo pode variar conforme a demanda.
+            </p>
 
             <h3 class="titulo-entrega">Dados do pedido</h3>
             <div class="cartao-entrega">
@@ -2137,6 +2161,7 @@
         // --- 5. TELA DE CARRINHO + ENTREGA ---
         function definirTipoPedido(tipo) {
             tipoPedidoAtual = tipo;
+            document.getElementById('aviso-prazo-checkout').hidden = tipo !== 'entrega';
             document.querySelectorAll('.tipo-pedido button').forEach(btn => {
                 btn.classList.toggle('ativo', btn.dataset.tipo === tipo);
             });
@@ -2170,6 +2195,7 @@
 
         function resetarTipoPedido() {
             tipoPedidoAtual = '';
+            document.getElementById('aviso-prazo-checkout').hidden = true;
             document.querySelectorAll('.tipo-pedido button').forEach(btn => {
                 btn.classList.remove('ativo');
             });
