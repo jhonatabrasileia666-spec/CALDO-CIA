@@ -1392,8 +1392,8 @@
         // =========================================================
         // 0. CONEXÃO COM O SUPABASE (mesmo projeto do painel admin)
         // =========================================================
-        const SUPABASE_URL = "https://yrcenfitsirpxkegsdzx.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlyY2VuZml0c2lycHhrZWdzZHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc2MTQ5MjEsImV4cCI6MjEwMzE5MDkyMX0.I6y3F-PCT1zyaOTPY9Bm_xkHDoye19MeJdju0ORAdCk";
+        const SUPABASE_URL = "https://jtnlxvuvdplamqwvajyt.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0bmx4dnV2ZHBsYW1xd3Zhanl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQzNDQxMDgsImV4cCI6MjEwOTkyMDEwOH0.qnucJHZYbLvJ2DJJnevDuIZ9TJZcNkFfumdS8I4kH60";
         const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const taxaEntrega = 4.00;
@@ -2370,7 +2370,7 @@
 
             let erroRegistro = null;
             try {
-                const { error } = await db.from('pedidos').insert({
+                const { error } = await db.rpc('caldo_criar_pedido', { p_pedido: {
                     cliente_nome: nome,
                     cliente_telefone: telefone.replace(/\D/g, ''),
                     itens: itensCarrinho,
@@ -2380,7 +2380,7 @@
                     total: total,
                     status: 1,
                     tipo_pedido: tipoPedidoAtual
-                });
+                }});
                 erroRegistro = error;
             } catch (erroInesperado) {
                 erroRegistro = erroInesperado;
@@ -2440,4 +2440,5 @@
     </script>
 </body>
 </html>
+
 
